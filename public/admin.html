@@ -1,0 +1,14 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BossMedya Admin</title>
+</head>
+<body>
+  <h2>BossMedya Admin Panel</h2>
+  <p>API Test:</p>
+  <button onclick="fetch('/api/stats').then(r=>r.json()).then(a=>alert(JSON.stringify(a)))">
+    Stats Test
+  </button>
+</body>
+</html>
