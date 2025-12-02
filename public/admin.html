@@ -1,14 +1,153 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
-  <title>BossMedya Admin</title>
+  <meta charset="UTF-8" />
+  <title>BossMedya Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: radial-gradient(circle at top, #111827 0, #020617 45%, #000 100%);
+    }
+    .glass {
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background: #4b5563;
+      border-radius: 999px;
+    }
+  </style>
 </head>
-<body>
-  <h2>BossMedya Admin Panel</h2>
-  <p>API Test:</p>
-  <button onclick="fetch('/api/stats').then(r=>r.json()).then(a=>alert(JSON.stringify(a)))">
-    Stats Test
-  </button>
+<body class="min-h-screen text-slate-100">
+  <header class="w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-sky-500 flex items-center justify-center text-slate-900 font-extrabold shadow-lg shadow-emerald-500/40">
+          BM
+        </div>
+        <div>
+          <div class="font-semibold tracking-tight text-lg">BossMedya Admin</div>
+          <div class="text-xs text-slate-400 -mt-0.5">Gerçek zamanlı ziyaretçi istatistikleri</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 text-xs">
+        <span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-400/30">
+          LIVE
+        </span>
+        <button id="refresh-btn"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600/60 transition">
+          Yenile
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 pt-6 pb-10 space-y-6">
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="glass rounded-2xl p-4 flex flex-col gap-2 shadow-lg shadow-emerald-500/10">
+        <div class="flex items-center justify-between">
+          <span class="text-xs uppercase tracking-wide text-slate-400">Toplam Ziyaretçi</span>
+          <span id="summary-total-change" class="text-emerald-400 text-xs font-medium">-</span>
+        </div>
+        <div id="summary-total" class="text-2xl font-semibold">–</div>
+        <div class="text-[11px] text-slate-500">Tüm zamanlar.</div>
+      </div>
+      <div class="glass rounded-2xl p-4 flex flex-col gap-2 shadow-lg shadow-sky-500/10">
+        <div class="flex items-center justify-between">
+          <span class="text-xs uppercase tracking-wide text-slate-400">Bugünkü Ziyaretçi</span>
+        </div>
+        <div id="summary-today" class="text-2xl font-semibold">–</div>
+        <div class="text-[11px] text-slate-500">Son 24 saat tekil hit.</div>
+      </div>
+      <div class="glass rounded-2xl p-4 flex flex-col gap-2 shadow-lg shadow-violet-500/10">
+        <div class="flex items-center justify-between">
+          <span class="text-xs uppercase tracking-wide text-slate-400">Şu An Online</span>
+          <span class="inline-flex items-center gap-1 text-emerald-400 text-[11px]">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            canlı
+          </span>
+        </div>
+        <div id="summary-online" class="text-2xl font-semibold">–</div>
+        <div class="text-[11px] text-slate-500">Son 5 dk içinde aktif oturum.</div>
+      </div>
+      <div class="glass rounded-2xl p-4 flex flex-col gap-2 shadow-lg shadow-amber-500/10">
+        <div class="flex items-center justify-between">
+          <span class="text-xs uppercase tracking-wide text-slate-400">Tahmini Oturum / Ziyaret</span>
+        </div>
+        <div id="summary-avg-session" class="text-2xl font-semibold">–</div>
+        <div class="text-[11px] text-slate-500">Sayfa görüntüleme tahmini.</div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="glass rounded-2xl p-4 lg:col-span-2 flex flex-col gap-3 shadow-lg shadow-sky-500/15">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-semibold">Son 14 Gün Trafik Grafiği</h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">
+              Günlük tekil ziyaretçi dağılımı (canlı kayıtlar üzerinden hesaplanır).
+            </p>
+          </div>
+        </div>
+        <div class="mt-2">
+          <canvas id="trafficChart" height="140"></canvas>
+        </div>
+      </div>
+      <div class="glass rounded-2xl p-4 flex flex-col gap-3 shadow-lg shadow-fuchsia-500/15">
+        <h2 class="text-sm font-semibold">Genel Durum</h2>
+        <dl class="space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <dt class="text-slate-400">Bounce Rate (tahmini)</dt>
+            <dd id="summary-bounce" class="font-medium text-amber-300">–</dd>
+          </div>
+          <div class="flex items-center justify-between">
+            <dt class="text-slate-400">En Yoğun Gün</dt>
+            <dd id="summary-best-day" class="font-medium text-sky-300">–</dd>
+          </div>
+          <div class="flex items-center justify-between">
+            <dt class="text-slate-400">En Yoğun Saat</dt>
+            <dd id="summary-best-hour" class="font-medium text-emerald-300">–</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="glass rounded-2xl p-4 shadow-lg shadow-slate-900/60">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="text-sm font-semibold">Son Ziyaretler</h2>
+          <p class="text-[11px] text-slate-400 mt-0.5">
+            Upstash üzerinde tutulan en son 50 hit kaydı.
+          </p>
+        </div>
+      </div>
+      <div class="overflow-auto max-h-72 scrollbar-thin text-xs">
+        <table class="min-w-full text-left border-collapse">
+          <thead class="text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-700/80">
+            <tr>
+              <th class="py-2 pr-4">Tarih / Saat</th>
+              <th class="py-2 pr-4">IP</th>
+              <th class="py-2 pr-4">Ülke</th>
+              <th class="py-2 pr-4">Sayfa</th>
+              <th class="py-2 pr-4">Referrer</th>
+              <th class="py-2 pr-4">Cihaz</th>
+            </tr>
+          </thead>
+          <tbody id="events-tbody" class="divide-y divide-slate-800/80">
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/admin.js"></script>
 </body>
 </html>
