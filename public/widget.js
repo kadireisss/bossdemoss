@@ -1,21 +1,28 @@
 // public/widget.js
 (function () {
-  try {
-    const payload = {
-      url: window.location.href,
-      referrer: document.referrer || null,
-      ua: navigator.userAgent,
-      ts: Date.now(),
-    };
+  const endpoint = "/api/track";
 
-    fetch("/api/track", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).catch((e) => {
-      console.warn("BossMedya widget track error:", e);
-    });
-  } catch (e) {
-    console.warn("BossMedya widget init error:", e);
+  function send() {
+    try {
+      fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({
+          url: window.location.href,
+          referrer: document.referrer || "",
+          ua: navigator.userAgent,
+        }),
+      }).catch(() => {});
+    } catch (e) {
+      console.error("BossMedya widget error:", e);
+    }
+  }
+
+  // sayfa yüklendiğinde tek hit
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    send();
+  } else {
+    window.addEventListener("DOMContentLoaded", send);
   }
 })();

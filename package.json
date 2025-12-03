@@ -1,5 +1,9 @@
 {
-  "name": "bossmedya",
+  "name": "sonbossmedya",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "scripts": {
+    "dev": "node api/track/index.js",
+    "start": "node api/track/index.js"
+  }
 }

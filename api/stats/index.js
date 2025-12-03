@@ -54,50 +54,55 @@ export default async function handler(req, res) {
 
   const headers = {
     Authorization: `Bearer ${KV_TOKEN}`,
+    "Content-Type": "application/json",
   };
 
   const now = Date.now();
   const nowDate = new Date(now);
 
+  // TOTAL & TODAY
   const totalJson = await kvGetJSON(`${KV_URL}/get/hits:total`, headers);
   const totalVisitors = parseNumberLike(totalJson);
 
   const todayKey = formatDayKey(nowDate);
-  const todayJson = await kvGetJSON(`${KV_URL}/get/hits:day:${todayKey}`, headers);
+  const todayJson = await kvGetJSON(
+    `${KV_URL}/get/hits:day:${todayKey}`,
+    headers
+  );
   const todayVisitors = parseNumberLike(todayJson);
 
+  // ONLINE: son 5 dakika içinde hit alan user'lar
   const ONLINE_WINDOW = 5 * 60 * 1000;
-  try {
-    await fetch(`${KV_URL}/zremrangebyscore/online/0/${now - ONLINE_WINDOW}`, {
-      method: "POST",
-      headers,
-    });
-  } catch (e) {
-    console.error("zremrangebyscore error:", e);
-  }
+  const cutoff = now - ONLINE_WINDOW;
 
-  let onlineIds = [];
-  try {
-    const onlineJson = await kvGetJSON(`${KV_URL}/zrange/online/0/-1`, headers);
-    if (Array.isArray(onlineJson)) {
-      onlineIds = onlineJson;
-    } else if (onlineJson && Array.isArray(onlineJson.result)) {
-      onlineIds = onlineJson.result;
-    }
-  } catch (e) {
-    console.error("online zrange error:", e);
-  }
+  await fetch(`${KV_URL}/zremrangebyscore/online/0/${cutoff}`, {
+    method: "POST",
+    headers,
+  });
 
-  const onlineNow = onlineIds.length;
+  const onlineResp = await kvGetJSON(
+    `${KV_URL}/zrangebyscore/online/${cutoff}/${now}`,
+    headers
+  );
 
+  const onlineNow = Array.isArray(onlineResp?.result)
+    ? onlineResp.result.length
+    : Array.isArray(onlineResp)
+    ? onlineResp.length
+    : 0;
+
+  // EVENTS (son 50)
   const eventsLimit = 50;
   let eventIds = [];
   try {
-    const evJson = await kvGetJSON(`${KV_URL}/zrevrange/events/0/${eventsLimit - 1}`, headers);
-    if (Array.isArray(evJson)) {
-      eventIds = evJson;
-    } else if (evJson && Array.isArray(evJson.result)) {
+    const evJson = await kvGetJSON(
+      `${KV_URL}/zrevrange/events/0/${eventsLimit - 1}`,
+      headers
+    );
+    if (Array.isArray(evJson?.result)) {
       eventIds = evJson.result;
+    } else if (Array.isArray(evJson)) {
+      eventIds = evJson;
     }
   } catch (e) {
     console.error("events zrevrange error:", e);
@@ -106,26 +111,37 @@ export default async function handler(req, res) {
   const events = [];
   for (const id of eventIds) {
     try {
-      const eJson = await kvGetJSON(`${KV_URL}/get/event:${encodeURIComponent(id)}`, headers);
-      if (!eJson) continue;
-      const ev = typeof eJson === "object" ? eJson : null;
-      if (!ev) continue;
+      const eJson = await kvGetJSON(
+        `${KV_URL}/get/event:${encodeURIComponent(id)}`,
+        headers
+      );
+      if (!eJson || typeof eJson !== "object") continue;
+      const ev = eJson;
+      const page = ev.page || "-";
+      const ref = ev.referrer || "";
+      const device = ev.device || "?";
+      const ua = ev.ua || device;
+
       events.push({
         time: ev.time || "",
         ip: ev.ip || "-",
         country: ev.country || "XX",
-        page: ev.page || "-",
-        referrer: ev.referrer || "",
-        device: ev.device || "?",
+        page,
+        path: page,
+        referrer: ref,
+        device,
+        ua,
       });
     } catch (e) {
       console.error("event get error:", e);
     }
   }
 
+  // CHART DATA (son 14 gün)
   const chartLabels = [];
   const chartValues = [];
   const dayHits = {};
+
   for (let i = 13; i >= 0; i--) {
     const d = new Date(nowDate);
     d.setDate(d.getDate() - i);
@@ -134,10 +150,12 @@ export default async function handler(req, res) {
   }
 
   const dayKeys = Object.keys(dayHits);
-  const promises = dayKeys.map((dk) =>
-    kvGetJSON(`${KV_URL}/get/hits:day:${dk}`, headers)
+  const results = await Promise.all(
+    dayKeys.map((dk) =>
+      kvGetJSON(`${KV_URL}/get/hits:day:${dk}`, headers)
+    )
   );
-  const results = await Promise.all(promises);
+
   results.forEach((r, idx) => {
     const dk = dayKeys[idx];
     dayHits[dk] = parseNumberLike(r);
@@ -145,12 +163,13 @@ export default async function handler(req, res) {
 
   let bestDayKey = null;
   let bestDayCount = 0;
+
   for (const dk of dayKeys) {
-    const v = dayHits[dk] || 0;
+    const val = dayHits[dk];
     chartLabels.push(labelFromDayKey(dk));
-    chartValues.push(v);
-    if (v > bestDayCount) {
-      bestDayCount = v;
+    chartValues.push(val);
+    if (val > bestDayCount) {
+      bestDayCount = val;
       bestDayKey = dk;
     }
   }
@@ -161,17 +180,15 @@ export default async function handler(req, res) {
     bestDayLabel = `${d}.${m}.${y}`;
   }
 
-  const totalHitsInRange = chartValues.reduce((a, b) => a + b, 0);
-  const avgSessionPages =
-    todayVisitors > 0 ? Math.max(1, (totalHitsInRange / Math.max(todayVisitors, 1)) / 2) : 2.5;
-  const bounceRate = 40;
-  const bestHour = "21:00 - 23:00";
-
-  const yesterdayKeyDate = new Date(nowDate);
-  yesterdayKeyDate.setDate(yesterdayKeyDate.getDate() - 1);
-  const yesterdayKey = formatDayKey(yesterdayKeyDate);
-  const yesterdayJson = await kvGetJSON(`${KV_URL}/get/hits:day:${yesterdayKey}`, headers);
+  const yesterday = new Date(nowDate);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = formatDayKey(yesterday);
+  const yesterdayJson = await kvGetJSON(
+    `${KV_URL}/get/hits:day:${yesterdayKey}`,
+    headers
+  );
   const yesterdayVisitors = parseNumberLike(yesterdayJson);
+
   let totalChangeLabel = "-";
   if (yesterdayVisitors > 0) {
     const diff = todayVisitors - yesterdayVisitors;
@@ -182,15 +199,24 @@ export default async function handler(req, res) {
     totalChangeLabel = "+∞% vs dün";
   }
 
+  const totalHitsInRange = chartValues.reduce((a, b) => a + b, 0);
+  const avgSessPagesRaw =
+    todayVisitors > 0
+      ? Math.max(1, totalHitsInRange / Math.max(todayVisitors, 1))
+      : 2.5;
+
+  const avgSessPages = Number(avgSessPagesRaw.toFixed(1));
+
   return res.status(200).json({
     summary: {
       totalVisitors,
       todayVisitors,
       onlineNow,
-      avgSessionPages: Number(avgSessionPages.toFixed(1)),
-      bounceRate,
+      avgSessionPages: avgSessPages,
+      avgSessOnPages: avgSessPages,
+      bounceRate: 40,
       bestDay: bestDayLabel,
-      bestHour,
+      bestHour: "21:00 - 23:00",
       totalChangeLabel,
     },
     chart: {

@@ -4,28 +4,20 @@
   <meta charset="UTF-8" />
   <title>BossMedya – Live Analytics Panel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <style>
     :root {
-      --bg: #050712;
-      --bg-alt: #0b0f1d;
-      --card: #111827;
+      --bg: #020617;
+      --bg-alt: #0b1120;
+      --card: #020617;
       --accent: #22d3ee;
-      --accent-soft: rgba(34, 211, 238, 0.2);
-      --accent-strong: #0ea5e9;
+      --accent-soft: rgba(34, 211, 238, 0.15);
       --danger: #f97373;
       --text-main: #e5e7eb;
       --text-muted: #9ca3af;
-      --border-subtle: #1f2933;
+      --border-subtle: #1f2937;
       --online-dot: #22c55e;
-      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.85);
-      --radius-lg: 18px;
-      --radius-md: 12px;
     }
-
     * {
       box-sizing: border-box;
       margin: 0;
@@ -33,46 +25,38 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
         "Segoe UI", sans-serif;
     }
-
-    html,
-    body {
+    html, body {
       height: 100%;
-      background: radial-gradient(circle at top, #020617 0, #020617 45%, #000 100%);
+      background: radial-gradient(circle at top, #020617 0, #000 55%, #000 100%);
       color: var(--text-main);
     }
-
     body.locked {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at top, #020617 0, #020617 45%, #000 100%);
     }
-
-    body.locked .lock-card {
+    .lock-card {
       background: rgba(15, 23, 42, 0.96);
-      border-radius: 24px;
-      padding: 32px 36px;
+      border-radius: 20px;
+      padding: 28px 24px 22px;
       border: 1px solid var(--border-subtle);
-      box-shadow: var(--shadow-soft);
-      max-width: 420px;
-      width: 92%;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.9);
+      width: 90%;
+      max-width: 380px;
       text-align: center;
     }
-
-    body.locked h1 {
-      font-size: 24px;
-      margin-bottom: 8px;
+    .lock-card h1 {
+      font-size: 22px;
+      margin-bottom: 6px;
     }
-
-    body.locked p {
-      font-size: 14px;
+    .lock-card p {
+      font-size: 13px;
       color: var(--text-muted);
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
-
-    body.locked input {
+    .lock-card input {
       width: 100%;
-      padding: 11px 12px;
+      padding: 10px 12px;
       border-radius: 999px;
       border: 1px solid #1f2937;
       background: #020617;
@@ -80,188 +64,157 @@
       outline: none;
       font-size: 14px;
     }
-
-    body.locked button {
-      margin-top: 14px;
+    .lock-card button {
       width: 100%;
-      padding: 11px 12px;
+      margin-top: 12px;
+      padding: 10px 12px;
       border-radius: 999px;
       border: none;
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      color: #0b1120;
-      font-weight: 600;
       cursor: pointer;
+      font-weight: 600;
+      background: linear-gradient(135deg, #22d3ee, #0ea5e9);
+      color: #020617;
     }
-
-    body.locked .hint {
-      font-size: 12px;
+    .lock-hint {
+      margin-top: 10px;
+      font-size: 11px;
       color: var(--text-muted);
-      margin-top: 12px;
     }
-
-    /* Layout */
-
     .app {
       min-height: 100vh;
-      display: flex;
+      display: none;
       flex-direction: column;
     }
-
     header {
-      padding: 18px 22px;
+      padding: 16px 18px 8px;
       border-bottom: 1px solid rgba(15, 23, 42, 0.9);
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent),
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.2), transparent),
-        rgba(15, 23, 42, 0.98);
-      backdrop-filter: blur(22px);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.3), transparent),
+        radial-gradient(circle at top right, rgba(129, 140, 248, 0.3), transparent),
+        rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(24px);
       position: sticky;
       top: 0;
       z-index: 10;
     }
-
     .header-inner {
-      max-width: 1180px;
+      max-width: 1120px;
       margin: 0 auto;
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
       gap: 12px;
     }
-
     .logo {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-
-    .logo-mark {
+    .logo-badge {
       width: 30px;
       height: 30px;
-      border-radius: 9px;
+      border-radius: 10px;
       background: radial-gradient(circle at 30% 30%, #f97316, #ec4899);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 17px;
       font-weight: 700;
-      color: #0b1120;
-      box-shadow: 0 10px 30px rgba(236, 72, 153, 0.5);
+      font-size: 17px;
+      color: #020617;
+      box-shadow: 0 12px 30px rgba(236, 72, 153, 0.7);
     }
-
     .logo-text {
       display: flex;
       flex-direction: column;
     }
-
     .logo-text span:first-child {
+      font-size: 15px;
       font-weight: 600;
-      letter-spacing: 0.02em;
-      font-size: 16px;
     }
-
     .logo-text span:last-child {
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.16em;
       color: var(--text-muted);
     }
-
-    .header-right {
+    .header-meta {
       display: flex;
+      gap: 10px;
       align-items: center;
-      gap: 14px;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
     }
-
     .env-chip {
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 5px 9px;
+      background: rgba(15, 23, 42, 0.9);
     }
-
     .env-dot {
-      width: 8px;
-      height: 8px;
+      width: 9px;
+      height: 9px;
       border-radius: 999px;
       background: var(--online-dot);
-      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.16);
     }
-
-    .last-update {
-      font-size: 11px;
+    .loading-bar {
+      margin-top: 10px;
+      height: 2px;
+      width: 0;
+      background: linear-gradient(90deg, #22d3ee, #6366f1);
+      border-radius: 999px;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.9);
+      transition: width 0.6s ease-out;
     }
-
+    .loading-bar.active {
+      width: 100%;
+    }
     main {
       flex: 1;
-      padding: 18px 14px 32px;
+      padding: 18px 14px 22px;
     }
-
     .container {
-      max-width: 1180px;
+      max-width: 1120px;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.6fr);
-      grid-template-rows: auto auto;
+      grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.8fr);
       gap: 16px;
     }
-
     .section-title {
-      font-size: 13px;
-      letter-spacing: 0.1em;
       text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 11px;
       color: var(--text-muted);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
-
-    .cards-grid {
+    .cards {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
+      gap: 12px;
       margin-bottom: 16px;
     }
-
     .card {
       background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-      border-radius: var(--radius-lg);
-      padding: 14px 14px 12px;
-      border: 1px solid rgba(31, 41, 55, 0.95);
-      box-shadow: 0 14px 35px rgba(15, 23, 42, 0.8);
+      border-radius: 16px;
+      padding: 12px 12px 10px;
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.9);
       position: relative;
       overflow: hidden;
     }
-
-    .card::before {
-      content: "";
-      position: absolute;
-      inset: -40%;
-      opacity: 0;
-      background: radial-gradient(circle at top left, rgba(34, 211, 238, 0.18), transparent);
-      transition: opacity 0.35s;
-      pointer-events: none;
-    }
-
-    .card:hover::before {
-      opacity: 1;
-    }
-
     .card-label {
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.13em;
+      letter-spacing: 0.14em;
       color: var(--text-muted);
     }
-
     .card-value {
-      margin-top: 7px;
-      font-size: 24px;
+      margin-top: 6px;
+      font-size: 22px;
       font-weight: 600;
     }
-
     .card-sub {
       margin-top: 4px;
       font-size: 11px;
@@ -270,54 +223,44 @@
       align-items: center;
       gap: 6px;
     }
-
     .pill {
-      padding: 3px 7px;
+      padding: 3px 6px;
       border-radius: 999px;
       font-size: 10px;
       background: var(--accent-soft);
       color: var(--accent);
     }
-
-    .pill.bad {
-      background: rgba(248, 113, 113, 0.18);
-      color: #fca5a5;
-    }
-
     .pill.good {
       background: rgba(52, 211, 153, 0.18);
       color: #6ee7b7;
     }
-
-    .chart-card,
-    .events-card {
-      background: linear-gradient(145deg, #020617, #020617);
-      border-radius: var(--radius-lg);
-      padding: 16px 16px 14px;
-      border: 1px solid rgba(31, 41, 55, 0.9);
-      box-shadow: var(--shadow-soft);
-      min-height: 260px;
+    .pill.bad {
+      background: rgba(248, 113, 113, 0.18);
+      color: #fecaca;
     }
-
-    .chart-header,
-    .events-header {
+    .panel {
+      background: linear-gradient(145deg, #020617, #020617);
+      border-radius: 16px;
+      padding: 14px 14px 10px;
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.9);
+      min-height: 240px;
+    }
+    .panel-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
       gap: 8px;
+      margin-bottom: 8px;
     }
-
-    .chart-title {
+    .panel-title {
       font-size: 13px;
       font-weight: 500;
     }
-
-    .chart-subtitle {
+    .panel-subtitle {
       font-size: 11px;
       color: var(--text-muted);
     }
-
     .badge {
       padding: 4px 9px;
       border-radius: 999px;
@@ -325,71 +268,44 @@
       font-size: 11px;
       color: var(--text-muted);
     }
-
     canvas {
       width: 100% !important;
       height: 210px !important;
     }
-
     .events-body {
       margin-top: 6px;
       max-height: 230px;
       overflow: auto;
       scrollbar-width: thin;
     }
-
-    .empty-state {
-      height: 180px;
-      border-radius: var(--radius-md);
-      border: 1px dashed rgba(55, 65, 81, 0.8);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--text-muted);
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.85), transparent);
-    }
-
-    .empty-state span {
-      font-size: 20px;
-    }
-
     .events-table {
       width: 100%;
       border-collapse: collapse;
       font-size: 11px;
     }
-
-    .events-table thead {
-      position: sticky;
-      top: 0;
-      background: #020617;
-      box-shadow: 0 1px 0 rgba(31, 41, 55, 0.8);
-    }
-
     .events-table th,
     .events-table td {
       padding: 6px 6px;
       text-align: left;
     }
-
+    .events-table thead {
+      position: sticky;
+      top: 0;
+      background: #020617;
+      box-shadow: 0 1px 0 rgba(31, 41, 55, 0.9);
+    }
     .events-table th {
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.14em;
-      font-size: 10px;
       color: var(--text-muted);
     }
-
     .events-table tr:nth-child(even) td {
-      background: rgba(15, 23, 42, 0.7);
+      background: rgba(15, 23, 42, 0.85);
     }
-
     .events-table tr:nth-child(odd) td {
-      background: rgba(15, 23, 42, 0.4);
+      background: rgba(15, 23, 42, 0.65);
     }
-
     .url,
     .ref {
       max-width: 220px;
@@ -397,65 +313,37 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-
     .ip-address {
-      font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 11px;
     }
-
     footer {
-      margin-top: 12px;
-      padding: 10px 14px 18px;
+      padding: 8px 14px 16px;
       font-size: 11px;
       color: var(--text-muted);
     }
-
     .footer-inner {
-      max-width: 1180px;
+      max-width: 1120px;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
       gap: 8px;
-      align-items: center;
       opacity: 0.7;
     }
-
-    .loading-bar {
-      height: 2px;
-      width: 0;
-      background: linear-gradient(90deg, var(--accent), #6366f1);
-      box-shadow: 0 0 18px rgba(56, 189, 248, 0.9);
-      border-radius: 999px;
-      transition: width 0.6s ease-out;
-      margin-bottom: 4px;
-    }
-
-    .loading-bar.active {
-      width: 100%;
-    }
-
     @media (max-width: 960px) {
       .container {
         grid-template-columns: minmax(0, 1fr);
       }
-      .cards-grid {
+      .cards {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
-
     @media (max-width: 640px) {
       main {
-        padding: 14px 10px 18px;
+        padding: 14px 10px 16px;
       }
-      header {
-        padding: 14px 10px;
-      }
-      .cards-grid {
+      .cards {
         grid-template-columns: minmax(0, 1fr);
-      }
-      .chart-card,
-      .events-card {
-        min-height: 220px;
       }
       canvas {
         height: 190px !important;
@@ -464,36 +352,34 @@
   </style>
 </head>
 <body>
-  <!-- JS ile lock kaldırılana kadar bu modda başlatıyoruz -->
   <div id="lock-root"></div>
 
-  <div id="app-root" class="app" style="display:none;">
+  <div id="app-root" class="app">
     <header>
       <div class="header-inner">
         <div class="logo">
-          <div class="logo-mark">B</div>
+          <div class="logo-badge">B</div>
           <div class="logo-text">
             <span>BossMedya Analytics</span>
             <span>Live Traffic · Upstash · Vercel</span>
           </div>
         </div>
-        <div class="header-right">
+        <div class="header-meta">
           <div class="env-chip">
             <div class="env-dot"></div>
             <span>LIVE MODE</span>
           </div>
-          <div class="last-update" id="lastUpdateText">Son güncelleme: –</div>
+          <div id="lastUpdateText">Son güncelleme: –</div>
         </div>
       </div>
-      <div class="loading-bar" id="loadingBar"></div>
+      <div id="loadingBar" class="loading-bar"></div>
     </header>
 
     <main>
       <div class="container">
         <section>
           <div class="section-title">Özet</div>
-
-          <div class="cards-grid">
+          <div class="cards">
             <div class="card">
               <div class="card-label">Bugün</div>
               <div class="card-value" id="todayVisitors">0</div>
@@ -502,7 +388,6 @@
                 <span class="pill good" id="totalChangeLabel">–</span>
               </div>
             </div>
-
             <div class="card">
               <div class="card-label">Toplam</div>
               <div class="card-value" id="totalVisitors">0</div>
@@ -510,16 +395,14 @@
                 <span>Toplam benzersiz oturum</span>
               </div>
             </div>
-
             <div class="card">
               <div class="card-label">Şu an online</div>
               <div class="card-value" id="onlineNow">0</div>
               <div class="card-sub">
-                <span class="pill">Son 5 dk içi</span>
+                <span class="pill">Son 5 dk</span>
                 <span id="bestHour">En yoğun saat: –</span>
               </div>
             </div>
-
             <div class="card">
               <div class="card-label">Bounce Rate</div>
               <div class="card-value" id="bounceRate">0%</div>
@@ -529,11 +412,11 @@
             </div>
           </div>
 
-          <div class="chart-card">
-            <div class="chart-header">
+          <div class="panel">
+            <div class="panel-header">
               <div>
-                <div class="chart-title">Son 14 gün trafiği</div>
-                <div class="chart-subtitle" id="bestDay">En iyi gün: –</div>
+                <div class="panel-title">Son 14 gün trafiği</div>
+                <div class="panel-subtitle" id="bestDay">En iyi gün: –</div>
               </div>
               <div class="badge">14 günlük görünüm</div>
             </div>
@@ -543,20 +426,19 @@
 
         <section>
           <div class="section-title">Son hareketler</div>
-          <div class="events-card">
-            <div class="events-header">
+          <div class="panel">
+            <div class="panel-header">
               <div>
-                <div class="chart-title">Son hitler</div>
-                <div class="chart-subtitle">Son 50 isteği buradan izleyebilirsin</div>
+                <div class="panel-title">Son hitler</div>
+                <div class="panel-subtitle">Son 50 isteği buradan izleyebilirsin</div>
               </div>
               <div class="badge" id="eventsCountBadge">0 kayıt</div>
             </div>
-
             <div class="events-body" id="eventsBody">
-              <div class="empty-state">
-                <span>🛰</span>
+              <div style="height:180px;border-radius:12px;border:1px dashed rgba(55,65,81,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--text-muted);background:radial-gradient(circle at top,rgba(15,23,42,0.9),transparent);">
+                <div style="font-size:20px;margin-bottom:4px;">🛰</div>
                 <div>Henüz event verisi gelmedi.</div>
-                <div>Trafiğin gelmesiyle burası otomatik dolacak.</div>
+                <div>Gerçek trafik geldikçe son 50 hit burada listelenecek.</div>
               </div>
             </div>
           </div>
@@ -573,22 +455,19 @@
   </div>
 
   <script>
-    // ==========================
-    //  ŞİFRE KONTROL
-    // ==========================
-
-    const ADMIN_PASSWORD = "656634"; // senin verdiğin şifre
+    const ADMIN_PASSWORD = "656634";
 
     function renderLockScreen() {
       document.body.className = "locked";
+      document.getElementById("app-root").style.display = "none";
       const root = document.getElementById("lock-root");
       root.innerHTML = `
         <div class="lock-card">
           <h1>BossMedya Admin Girişi</h1>
-          <p>Bu panel sadece iç kullanım içindir. Lütfen yönetici şifresini gir.</p>
+          <p>Bu panel yalnızca iç kullanım içindir. Lütfen yönetici şifresini gir.</p>
           <input type="password" id="lockPassword" placeholder="Yönetici şifresi" />
-          <button id="lockButton">Panele girmek için onayla</button>
-          <div class="hint">URL parametresi <code>?pwd=656634</code> ile de direkt giriş yapabilirsin.</div>
+          <button id="lockButton">Panele giriş yap</button>
+          <div class="lock-hint">URL parametresi <code>?pwd=656634</code> ile de direkt giriş yapabilirsin.</div>
         </div>
       `;
 
@@ -608,6 +487,7 @@
       document.body.className = "";
       document.getElementById("lock-root").innerHTML = "";
       document.getElementById("app-root").style.display = "flex";
+      initAnalytics();
     }
 
     (function checkAccess() {
@@ -615,29 +495,22 @@
       const pwd = params.get("pwd");
       if (pwd === ADMIN_PASSWORD) {
         unlockApp();
-        initAnalytics();
       } else {
         renderLockScreen();
       }
     })();
-
-    // ==========================
-    //  ANALYTICS UI
-    // ==========================
 
     let chartInstance = null;
 
     function animateNumber(el, target, suffix = "", duration = 650) {
       const start = 0;
       const startTime = performance.now();
-
       function frame(now) {
         const progress = Math.min((now - startTime) / duration, 1);
         const value = Math.round(start + (target - start) * progress);
         el.textContent = value.toLocaleString("tr-TR") + suffix;
         if (progress < 1) requestAnimationFrame(frame);
       }
-
       requestAnimationFrame(frame);
     }
 
@@ -648,10 +521,7 @@
 
     function renderChart(labels, values) {
       const ctx = document.getElementById("trafficChart").getContext("2d");
-
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
+      if (chartInstance) chartInstance.destroy();
 
       chartInstance = new Chart(ctx, {
         type: "line",
@@ -668,46 +538,34 @@
               borderWidth: 2,
               pointRadius: 3,
               pointBackgroundColor: "#38bdf8",
-              pointHoverRadius: 4
-            }
-          ]
+              pointHoverRadius: 4,
+            },
+          ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
             x: {
-              grid: {
-                display: false
-              },
-              ticks: {
-                color: "#9ca3af",
-                maxTicksLimit: 7
-              }
+              grid: { display: false },
+              ticks: { color: "#9ca3af", maxTicksLimit: 7 },
             },
             y: {
-              grid: {
-                color: "rgba(55,65,81,0.7)"
-              },
-              ticks: {
-                color: "#9ca3af",
-                precision: 0
-              }
-            }
+              grid: { color: "rgba(55,65,81,0.7)" },
+              ticks: { color: "#9ca3af", precision: 0 },
+            },
           },
           plugins: {
-            legend: {
-              display: false
-            },
+            legend: { display: false },
             tooltip: {
               backgroundColor: "#020617",
               borderColor: "#1f2937",
               borderWidth: 1,
               padding: 10,
-              displayColors: false
-            }
-          }
-        }
+              displayColors: false,
+            },
+          },
+        },
       });
     }
 
@@ -717,8 +575,8 @@
 
       if (!events || events.length === 0) {
         body.innerHTML = `
-          <div class="empty-state">
-            <span>🛰</span>
+          <div style="height:180px;border-radius:12px;border:1px dashed rgba(55,65,81,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--text-muted);background:radial-gradient(circle at top,rgba(15,23,42,0.9),transparent);">
+            <div style="font-size:20px;margin-bottom:4px;">🛰</div>
             <div>Henüz event verisi gelmedi.</div>
             <div>Gerçek trafik geldikçe son 50 hit burada listelenecek.</div>
           </div>
@@ -734,10 +592,10 @@
           (e) => `
         <tr>
           <td class="ip-address">${e.ip || "-"}</td>
-          <td class="url" title="${e.path || "-"}">${e.path || "-"}</td>
+          <td class="url" title="${e.path || e.page || "-"}">${e.path || e.page || "-"}</td>
           <td class="ref" title="${e.referrer || "-"}">${e.referrer || "-"}</td>
           <td>${e.country || "-"}</td>
-          <td>${e.ua || "-"}</td>
+          <td>${e.ua || e.device || "-"}</td>
           <td>${e.time || "-"}</td>
         </tr>
       `
@@ -767,7 +625,6 @@
       const loadingBar = document.getElementById("loadingBar");
       const lastUpdateText = document.getElementById("lastUpdateText");
       const yearEl = document.getElementById("year");
-
       yearEl.textContent = new Date().getFullYear().toString();
 
       try {
@@ -779,18 +636,34 @@
         const chart = data.chart || { labels: [], values: [] };
         const events = data.events || [];
 
-        animateNumber(document.getElementById("todayVisitors"), s.todayVisitors || 0);
-        animateNumber(document.getElementById("totalVisitors"), s.totalVisitors || 0);
-        animateNumber(document.getElementById("onlineNow"), s.onlineNow || 0);
+        animateNumber(
+          document.getElementById("todayVisitors"),
+          s.todayVisitors || 0
+        );
+        animateNumber(
+          document.getElementById("totalVisitors"),
+          s.totalVisitors || 0
+        );
+        animateNumber(
+          document.getElementById("onlineNow"),
+          s.onlineNow || 0
+        );
         animateNumber(
           document.getElementById("bounceRate"),
           s.bounceRate || 0,
           "%"
         );
-        setText("avgSessOnPages", (s.avgSessOnPages || 0).toString());
+
+        setText(
+          "avgSessOnPages",
+          (s.avgSessOnPages || s.avgSessionPages || 0).toString()
+        );
         setText("bestDay", "En iyi gün: " + (s.bestDay || "–"));
         setText("bestHour", "En yoğun saat: " + (s.bestHour || "–"));
-        setText("totalChangeLabel", s.totalChangeLabel || "–");
+        setText(
+          "totalChangeLabel",
+          s.totalChangeLabel || "-"
+        );
 
         renderChart(chart.labels || [], chart.values || []);
         renderEvents(events);
@@ -803,7 +676,7 @@
             minute: "2-digit",
             day: "2-digit",
             month: "2-digit",
-            year: "numeric"
+            year: "numeric",
           });
       } catch (err) {
         console.error("Stats yüklenirken hata:", err);
