@@ -2,152 +2,816 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <title>BossMedya Admin Panel</title>
+  <title>BossMedya – Live Analytics Panel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
+    :root {
+      --bg: #050712;
+      --bg-alt: #0b0f1d;
+      --card: #111827;
+      --accent: #22d3ee;
+      --accent-soft: rgba(34, 211, 238, 0.2);
+      --accent-strong: #0ea5e9;
+      --danger: #f97373;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --border-subtle: #1f2933;
+      --online-dot: #22c55e;
+      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.85);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+    }
+
+    html,
     body {
-      background: radial-gradient(circle at top, #111827 0, #020617 45%, #000 100%);
+      height: 100%;
+      background: radial-gradient(circle at top, #020617 0, #020617 45%, #000 100%);
+      color: var(--text-main);
     }
-    .glass {
-      background: rgba(15, 23, 42, 0.9);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(148, 163, 184, 0.3);
+
+    body.locked {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #020617 0, #020617 45%, #000 100%);
     }
-    .scrollbar-thin::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+
+    body.locked .lock-card {
+      background: rgba(15, 23, 42, 0.96);
+      border-radius: 24px;
+      padding: 32px 36px;
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-soft);
+      max-width: 420px;
+      width: 92%;
+      text-align: center;
     }
-    .scrollbar-thin::-webkit-scrollbar-thumb {
-      background: #4b5563;
+
+    body.locked h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    body.locked p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+    }
+
+    body.locked input {
+      width: 100%;
+      padding: 11px 12px;
       border-radius: 999px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: var(--text-main);
+      outline: none;
+      font-size: 14px;
+    }
+
+    body.locked button {
+      margin-top: 14px;
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #0b1120;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    body.locked .hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 12px;
+    }
+
+    /* Layout */
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 18px 22px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.9);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent),
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.2), transparent),
+        rgba(15, 23, 42, 0.98);
+      backdrop-filter: blur(22px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: radial-gradient(circle at 30% 30%, #f97316, #ec4899);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: 700;
+      color: #0b1120;
+      box-shadow: 0 10px 30px rgba(236, 72, 153, 0.5);
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-text span:first-child {
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      font-size: 16px;
+    }
+
+    .logo-text span:last-child {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .env-chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .env-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--online-dot);
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+    }
+
+    .last-update {
+      font-size: 11px;
+    }
+
+    main {
+      flex: 1;
+      padding: 18px 14px 32px;
+    }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.6fr);
+      grid-template-rows: auto auto;
+      gap: 16px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
+      border-radius: var(--radius-lg);
+      padding: 14px 14px 12px;
+      border: 1px solid rgba(31, 41, 55, 0.95);
+      box-shadow: 0 14px 35px rgba(15, 23, 42, 0.8);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      opacity: 0;
+      background: radial-gradient(circle at top left, rgba(34, 211, 238, 0.18), transparent);
+      transition: opacity 0.35s;
+      pointer-events: none;
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      color: var(--text-muted);
+    }
+
+    .card-value {
+      margin-top: 7px;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .card-sub {
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill {
+      padding: 3px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .pill.bad {
+      background: rgba(248, 113, 113, 0.18);
+      color: #fca5a5;
+    }
+
+    .pill.good {
+      background: rgba(52, 211, 153, 0.18);
+      color: #6ee7b7;
+    }
+
+    .chart-card,
+    .events-card {
+      background: linear-gradient(145deg, #020617, #020617);
+      border-radius: var(--radius-lg);
+      padding: 16px 16px 14px;
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      box-shadow: var(--shadow-soft);
+      min-height: 260px;
+    }
+
+    .chart-header,
+    .events-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+
+    .chart-title {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .chart-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .badge {
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 210px !important;
+    }
+
+    .events-body {
+      margin-top: 6px;
+      max-height: 230px;
+      overflow: auto;
+      scrollbar-width: thin;
+    }
+
+    .empty-state {
+      height: 180px;
+      border-radius: var(--radius-md);
+      border: 1px dashed rgba(55, 65, 81, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.85), transparent);
+    }
+
+    .empty-state span {
+      font-size: 20px;
+    }
+
+    .events-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    .events-table thead {
+      position: sticky;
+      top: 0;
+      background: #020617;
+      box-shadow: 0 1px 0 rgba(31, 41, 55, 0.8);
+    }
+
+    .events-table th,
+    .events-table td {
+      padding: 6px 6px;
+      text-align: left;
+    }
+
+    .events-table th {
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .events-table tr:nth-child(even) td {
+      background: rgba(15, 23, 42, 0.7);
+    }
+
+    .events-table tr:nth-child(odd) td {
+      background: rgba(15, 23, 42, 0.4);
+    }
+
+    .url,
+    .ref {
+      max-width: 220px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ip-address {
+      font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+    }
+
+    footer {
+      margin-top: 12px;
+      padding: 10px 14px 18px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .footer-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      opacity: 0.7;
+    }
+
+    .loading-bar {
+      height: 2px;
+      width: 0;
+      background: linear-gradient(90deg, var(--accent), #6366f1);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.9);
+      border-radius: 999px;
+      transition: width 0.6s ease-out;
+      margin-bottom: 4px;
+    }
+
+    .loading-bar.active {
+      width: 100%;
+    }
+
+    @media (max-width: 960px) {
+      .container {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      main {
+        padding: 14px 10px 18px;
+      }
+      header {
+        padding: 14px 10px;
+      }
+      .cards-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .chart-card,
+      .events-card {
+        min-height: 220px;
+      }
+      canvas {
+        height: 190px !important;
+      }
     }
   </style>
 </head>
-<body class="min-h-screen text-slate-100">
-  <header class="w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur sticky top-0 z-20">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-sky-500 flex items-center justify-center text-slate-900 font-extrabold shadow-lg shadow-emerald-500/40">
-          BM
-        </div>
-        <div>
-          <div class="font-semibold tracking-tight text-lg">BossMedya Admin</div>
-          <div class="text-xs text-slate-400 -mt-0.5">Gerçek zamanlı ziyaretçi istatistikleri</div>
-        </div>
-      </div>
-      <div class="flex items-center gap-3 text-xs">
-        <span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-400/30">
-          LIVE
-        </span>
-        <button id="refresh-btn"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600/60 transition">
-          Yenile
-        </button>
-      </div>
-    </div>
-  </header>
+<body>
+  <!-- JS ile lock kaldırılana kadar bu modda başlatıyoruz -->
+  <div id="lock-root"></div>
 
-  <main class="max-w-6xl mx-auto px-4 pt-6 pb-10 space-y-6">
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="glass rounded-2xl p-4 flex flex-col gap-2 shadow-lg shadow-emerald-500/10">
-        <div class="flex items-center justify-between">
-          <span class="text-xs uppercase tracking-wide text-slate-400">Toplam Ziyaretçi</span>
-          <span id="summary-total-change" class="text-emerald-400 text-xs font-medium">-</span>
+  <div id="app-root" class="app" style="display:none;">
+    <header>
+      <div class="header-inner">
+        <div class="logo">
+          <div class="logo-mark">B</div>
+          <div class="logo-text">
+            <span>BossMedya Analytics</span>
+            <span>Live Traffic · Upstash · Vercel</span>
+          </div>
         </div>
-        <div id="summary-total" class="text-2xl font-semibold">–</div>
-        <div class="text-[11px] text-slate-500">Tüm zamanlar.</div>
-      </div>
-      <div class="glass rounded-2xl p-4 flex flex-col gap-2 shadow-lg shadow-sky-500/10">
-        <div class="flex items-center justify-between">
-          <span class="text-xs uppercase tracking-wide text-slate-400">Bugünkü Ziyaretçi</span>
+        <div class="header-right">
+          <div class="env-chip">
+            <div class="env-dot"></div>
+            <span>LIVE MODE</span>
+          </div>
+          <div class="last-update" id="lastUpdateText">Son güncelleme: –</div>
         </div>
-        <div id="summary-today" class="text-2xl font-semibold">–</div>
-        <div class="text-[11px] text-slate-500">Son 24 saat tekil hit.</div>
       </div>
-      <div class="glass rounded-2xl p-4 flex flex-col gap-2 shadow-lg shadow-violet-500/10">
-        <div class="flex items-center justify-between">
-          <span class="text-xs uppercase tracking-wide text-slate-400">Şu An Online</span>
-          <span class="inline-flex items-center gap-1 text-emerald-400 text-[11px]">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            canlı
-          </span>
-        </div>
-        <div id="summary-online" class="text-2xl font-semibold">–</div>
-        <div class="text-[11px] text-slate-500">Son 5 dk içinde aktif oturum.</div>
-      </div>
-      <div class="glass rounded-2xl p-4 flex flex-col gap-2 shadow-lg shadow-amber-500/10">
-        <div class="flex items-center justify-between">
-          <span class="text-xs uppercase tracking-wide text-slate-400">Tahmini Oturum / Ziyaret</span>
-        </div>
-        <div id="summary-avg-session" class="text-2xl font-semibold">–</div>
-        <div class="text-[11px] text-slate-500">Sayfa görüntüleme tahmini.</div>
-      </div>
-    </section>
+      <div class="loading-bar" id="loadingBar"></div>
+    </header>
 
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div class="glass rounded-2xl p-4 lg:col-span-2 flex flex-col gap-3 shadow-lg shadow-sky-500/15">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-sm font-semibold">Son 14 Gün Trafik Grafiği</h2>
-            <p class="text-[11px] text-slate-400 mt-0.5">
-              Günlük tekil ziyaretçi dağılımı (canlı kayıtlar üzerinden hesaplanır).
-            </p>
-          </div>
-        </div>
-        <div class="mt-2">
-          <canvas id="trafficChart" height="140"></canvas>
-        </div>
-      </div>
-      <div class="glass rounded-2xl p-4 flex flex-col gap-3 shadow-lg shadow-fuchsia-500/15">
-        <h2 class="text-sm font-semibold">Genel Durum</h2>
-        <dl class="space-y-2 text-xs">
-          <div class="flex items-center justify-between">
-            <dt class="text-slate-400">Bounce Rate (tahmini)</dt>
-            <dd id="summary-bounce" class="font-medium text-amber-300">–</dd>
-          </div>
-          <div class="flex items-center justify-between">
-            <dt class="text-slate-400">En Yoğun Gün</dt>
-            <dd id="summary-best-day" class="font-medium text-sky-300">–</dd>
-          </div>
-          <div class="flex items-center justify-between">
-            <dt class="text-slate-400">En Yoğun Saat</dt>
-            <dd id="summary-best-hour" class="font-medium text-emerald-300">–</dd>
-          </div>
-        </dl>
-      </div>
-    </section>
+    <main>
+      <div class="container">
+        <section>
+          <div class="section-title">Özet</div>
 
-    <section class="glass rounded-2xl p-4 shadow-lg shadow-slate-900/60">
-      <div class="flex items-center justify-between mb-3">
-        <div>
-          <h2 class="text-sm font-semibold">Son Ziyaretler</h2>
-          <p class="text-[11px] text-slate-400 mt-0.5">
-            Upstash üzerinde tutulan en son 50 hit kaydı.
-          </p>
-        </div>
+          <div class="cards-grid">
+            <div class="card">
+              <div class="card-label">Bugün</div>
+              <div class="card-value" id="todayVisitors">0</div>
+              <div class="card-sub">
+                <span>Toplam ziyaretçi</span>
+                <span class="pill good" id="totalChangeLabel">–</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-label">Toplam</div>
+              <div class="card-value" id="totalVisitors">0</div>
+              <div class="card-sub">
+                <span>Toplam benzersiz oturum</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-label">Şu an online</div>
+              <div class="card-value" id="onlineNow">0</div>
+              <div class="card-sub">
+                <span class="pill">Son 5 dk içi</span>
+                <span id="bestHour">En yoğun saat: –</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-label">Bounce Rate</div>
+              <div class="card-value" id="bounceRate">0%</div>
+              <div class="card-sub">
+                <span>Ortalama sayfa / oturum: <strong id="avgSessOnPages">0</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Son 14 gün trafiği</div>
+                <div class="chart-subtitle" id="bestDay">En iyi gün: –</div>
+              </div>
+              <div class="badge">14 günlük görünüm</div>
+            </div>
+            <canvas id="trafficChart"></canvas>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-title">Son hareketler</div>
+          <div class="events-card">
+            <div class="events-header">
+              <div>
+                <div class="chart-title">Son hitler</div>
+                <div class="chart-subtitle">Son 50 isteği buradan izleyebilirsin</div>
+              </div>
+              <div class="badge" id="eventsCountBadge">0 kayıt</div>
+            </div>
+
+            <div class="events-body" id="eventsBody">
+              <div class="empty-state">
+                <span>🛰</span>
+                <div>Henüz event verisi gelmedi.</div>
+                <div>Trafiğin gelmesiyle burası otomatik dolacak.</div>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
-      <div class="overflow-auto max-h-72 scrollbar-thin text-xs">
-        <table class="min-w-full text-left border-collapse">
-          <thead class="text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-700/80">
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <div>© <span id="year"></span> BossMedya · Internal Analytics</div>
+        <div>Upstash KV + Vercel Edge · Track endpoint: <code>/api/track</code></div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // ==========================
+    //  ŞİFRE KONTROL
+    // ==========================
+
+    const ADMIN_PASSWORD = "656634"; // senin verdiğin şifre
+
+    function renderLockScreen() {
+      document.body.className = "locked";
+      const root = document.getElementById("lock-root");
+      root.innerHTML = `
+        <div class="lock-card">
+          <h1>BossMedya Admin Girişi</h1>
+          <p>Bu panel sadece iç kullanım içindir. Lütfen yönetici şifresini gir.</p>
+          <input type="password" id="lockPassword" placeholder="Yönetici şifresi" />
+          <button id="lockButton">Panele girmek için onayla</button>
+          <div class="hint">URL parametresi <code>?pwd=656634</code> ile de direkt giriş yapabilirsin.</div>
+        </div>
+      `;
+
+      document.getElementById("lockButton").onclick = () => {
+        const val = document.getElementById("lockPassword").value.trim();
+        if (val === ADMIN_PASSWORD) {
+          const url = new URL(window.location.href);
+          url.searchParams.set("pwd", ADMIN_PASSWORD);
+          window.location.href = url.toString();
+        } else {
+          alert("Yanlış şifre!");
+        }
+      };
+    }
+
+    function unlockApp() {
+      document.body.className = "";
+      document.getElementById("lock-root").innerHTML = "";
+      document.getElementById("app-root").style.display = "flex";
+    }
+
+    (function checkAccess() {
+      const params = new URLSearchParams(window.location.search);
+      const pwd = params.get("pwd");
+      if (pwd === ADMIN_PASSWORD) {
+        unlockApp();
+        initAnalytics();
+      } else {
+        renderLockScreen();
+      }
+    })();
+
+    // ==========================
+    //  ANALYTICS UI
+    // ==========================
+
+    let chartInstance = null;
+
+    function animateNumber(el, target, suffix = "", duration = 650) {
+      const start = 0;
+      const startTime = performance.now();
+
+      function frame(now) {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const value = Math.round(start + (target - start) * progress);
+        el.textContent = value.toLocaleString("tr-TR") + suffix;
+        if (progress < 1) requestAnimationFrame(frame);
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    function renderChart(labels, values) {
+      const ctx = document.getElementById("trafficChart").getContext("2d");
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Ziyaretçi",
+              data: values,
+              borderColor: "#22d3ee",
+              backgroundColor: "rgba(34, 211, 238, 0.12)",
+              tension: 0.4,
+              fill: true,
+              borderWidth: 2,
+              pointRadius: 3,
+              pointBackgroundColor: "#38bdf8",
+              pointHoverRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: "#9ca3af",
+                maxTicksLimit: 7
+              }
+            },
+            y: {
+              grid: {
+                color: "rgba(55,65,81,0.7)"
+              },
+              ticks: {
+                color: "#9ca3af",
+                precision: 0
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: "#020617",
+              borderColor: "#1f2937",
+              borderWidth: 1,
+              padding: 10,
+              displayColors: false
+            }
+          }
+        }
+      });
+    }
+
+    function renderEvents(events) {
+      const body = document.getElementById("eventsBody");
+      const badge = document.getElementById("eventsCountBadge");
+
+      if (!events || events.length === 0) {
+        body.innerHTML = `
+          <div class="empty-state">
+            <span>🛰</span>
+            <div>Henüz event verisi gelmedi.</div>
+            <div>Gerçek trafik geldikçe son 50 hit burada listelenecek.</div>
+          </div>
+        `;
+        badge.textContent = "0 kayıt";
+        return;
+      }
+
+      badge.textContent = `${events.length} kayıt`;
+
+      const rows = events
+        .map(
+          (e) => `
+        <tr>
+          <td class="ip-address">${e.ip || "-"}</td>
+          <td class="url" title="${e.path || "-"}">${e.path || "-"}</td>
+          <td class="ref" title="${e.referrer || "-"}">${e.referrer || "-"}</td>
+          <td>${e.country || "-"}</td>
+          <td>${e.ua || "-"}</td>
+          <td>${e.time || "-"}</td>
+        </tr>
+      `
+        )
+        .join("");
+
+      body.innerHTML = `
+        <table class="events-table">
+          <thead>
             <tr>
-              <th class="py-2 pr-4">Tarih / Saat</th>
-              <th class="py-2 pr-4">IP</th>
-              <th class="py-2 pr-4">Ülke</th>
-              <th class="py-2 pr-4">Sayfa</th>
-              <th class="py-2 pr-4">Referrer</th>
-              <th class="py-2 pr-4">Cihaz</th>
+              <th>IP</th>
+              <th>URL</th>
+              <th>Ref</th>
+              <th>Ülke</th>
+              <th>Cihaz</th>
+              <th>Zaman</th>
             </tr>
           </thead>
-          <tbody id="events-tbody" class="divide-y divide-slate-800/80">
+          <tbody>
+            ${rows}
           </tbody>
         </table>
-      </div>
-    </section>
-  </main>
+      `;
+    }
 
-  <script src="/admin.js"></script>
+    async function initAnalytics() {
+      const loadingBar = document.getElementById("loadingBar");
+      const lastUpdateText = document.getElementById("lastUpdateText");
+      const yearEl = document.getElementById("year");
+
+      yearEl.textContent = new Date().getFullYear().toString();
+
+      try {
+        loadingBar.classList.add("active");
+        const res = await fetch("/api/stats");
+        const data = await res.json();
+
+        const s = data.summary || {};
+        const chart = data.chart || { labels: [], values: [] };
+        const events = data.events || [];
+
+        animateNumber(document.getElementById("todayVisitors"), s.todayVisitors || 0);
+        animateNumber(document.getElementById("totalVisitors"), s.totalVisitors || 0);
+        animateNumber(document.getElementById("onlineNow"), s.onlineNow || 0);
+        animateNumber(
+          document.getElementById("bounceRate"),
+          s.bounceRate || 0,
+          "%"
+        );
+        setText("avgSessOnPages", (s.avgSessOnPages || 0).toString());
+        setText("bestDay", "En iyi gün: " + (s.bestDay || "–"));
+        setText("bestHour", "En yoğun saat: " + (s.bestHour || "–"));
+        setText("totalChangeLabel", s.totalChangeLabel || "–");
+
+        renderChart(chart.labels || [], chart.values || []);
+        renderEvents(events);
+
+        const now = new Date();
+        lastUpdateText.textContent =
+          "Son güncelleme: " +
+          now.toLocaleString("tr-TR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+          });
+      } catch (err) {
+        console.error("Stats yüklenirken hata:", err);
+        alert("Stats API okunurken bir hata oluştu. Konsolu kontrol et.");
+      } finally {
+        setTimeout(() => loadingBar.classList.remove("active"), 500);
+      }
+    }
+  </script>
 </body>
 </html>
